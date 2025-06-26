@@ -102,7 +102,7 @@ const Index = () => {
               />
             </div>
             <Button onClick={() => setShowPostJob(!showPostJob)} className="bg-blue-600 hover:bg-blue-700">
-              Post a Job
+              {showPostJob ? 'Back to Jobs' : 'Post a Job'}
             </Button>
           </div>
         </div>
@@ -110,60 +110,86 @@ const Index = () => {
 
       <div className="max-w-7xl mx-auto px-6 py-6">
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-          {/* Left Sidebar - Job Listings */}
+          {/* Left Side - Changes based on showPostJob */}
           <div className="lg:col-span-2 space-y-4">
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-semibold text-gray-900">
-                  Software Engineer in United States
-                </h2>
-                <Badge variant="secondary">{mockJobs.length} results</Badge>
-              </div>
-              
-              {/* Filters */}
-              <div className="flex flex-wrap gap-2 mb-4">
-                <Badge variant="outline" className="cursor-pointer hover:bg-gray-50">Date posted</Badge>
-                <Badge variant="outline" className="cursor-pointer hover:bg-gray-50">Experience level</Badge>
-                <Badge variant="outline" className="cursor-pointer hover:bg-gray-50">Salary</Badge>
-                <Badge variant="outline" className="cursor-pointer hover:bg-gray-50">Remote</Badge>
-              </div>
-            </div>
-
-            {/* Job Listings */}
-            <div className="space-y-3">
-              {mockJobs.map((job) => (
-                <Card 
-                  key={job.id} 
-                  className={`cursor-pointer transition-all hover:shadow-md ${selectedJob.id === job.id ? 'ring-2 ring-blue-500 shadow-md' : ''}`}
-                  onClick={() => setSelectedJob(job)}
-                >
-                  <CardContent className="p-4">
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <h3 className="font-semibold text-gray-900 mb-1">{job.title}</h3>
-                        <p className="text-sm text-blue-600 mb-1">{job.company}</p>
-                        <div className="flex items-center text-sm text-gray-600 mb-2">
-                          <MapPin className="w-3 h-3 mr-1" />
-                          <span>{job.location} - {job.distance}</span>
-                        </div>
-                        <div className="flex items-center text-sm text-green-700 font-medium">
-                          <DollarSign className="w-3 h-3 mr-1" />
-                          <span>{job.salary}</span>
-                        </div>
-                      </div>
-                      <Badge variant="secondary" className="text-xs">
-                        {job.type}
-                      </Badge>
+            {showPostJob ? (
+              /* Job Preview when posting */
+              <Card>
+                <CardHeader>
+                  <h2 className="text-xl font-semibold">Job Preview</h2>
+                  <p className="text-sm text-gray-600">This is how your job will appear to candidates</p>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {jobDescription ? (
+                    <div className="border border-gray-200 rounded-lg p-4 bg-gray-50">
+                      <h3 className="font-semibold text-gray-900 mb-2">Job Description</h3>
+                      <p className="text-gray-700 whitespace-pre-wrap">{jobDescription}</p>
                     </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+                  ) : (
+                    <div className="border border-dashed border-gray-300 rounded-lg p-8 text-center">
+                      <p className="text-gray-500">Start typing your job description to see a preview</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            ) : (
+              /* Original Job Listings */
+              <>
+                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+                  <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-lg font-semibold text-gray-900">
+                      Software Engineer in United States
+                    </h2>
+                    <Badge variant="secondary">{mockJobs.length} results</Badge>
+                  </div>
+                  
+                  {/* Filters */}
+                  <div className="flex flex-wrap gap-2 mb-4">
+                    <Badge variant="outline" className="cursor-pointer hover:bg-gray-50">Date posted</Badge>
+                    <Badge variant="outline" className="cursor-pointer hover:bg-gray-50">Experience level</Badge>
+                    <Badge variant="outline" className="cursor-pointer hover:bg-gray-50">Salary</Badge>
+                    <Badge variant="outline" className="cursor-pointer hover:bg-gray-50">Remote</Badge>
+                  </div>
+                </div>
+
+                {/* Job Listings */}
+                <div className="space-y-3">
+                  {mockJobs.map((job) => (
+                    <Card 
+                      key={job.id} 
+                      className={`cursor-pointer transition-all hover:shadow-md ${selectedJob.id === job.id ? 'ring-2 ring-blue-500 shadow-md' : ''}`}
+                      onClick={() => setSelectedJob(job)}
+                    >
+                      <CardContent className="p-4">
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <h3 className="font-semibold text-gray-900 mb-1">{job.title}</h3>
+                            <p className="text-sm text-blue-600 mb-1">{job.company}</p>
+                            <div className="flex items-center text-sm text-gray-600 mb-2">
+                              <MapPin className="w-3 h-3 mr-1" />
+                              <span>{job.location} - {job.distance}</span>
+                            </div>
+                            <div className="flex items-center text-sm text-green-700 font-medium">
+                              <DollarSign className="w-3 h-3 mr-1" />
+                              <span>{job.salary}</span>
+                            </div>
+                          </div>
+                          <Badge variant="secondary" className="text-xs">
+                            {job.type}
+                          </Badge>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </>
+            )}
           </div>
 
-          {/* Right Panel - Job Details */}
+          {/* Right Side - Changes based on showPostJob */}
           <div className="lg:col-span-3">
             {showPostJob ? (
+              /* Job Posting Form */
               <Card>
                 <CardHeader>
                   <h2 className="text-xl font-semibold">Post a New Job</h2>
@@ -191,6 +217,7 @@ const Index = () => {
                 </CardContent>
               </Card>
             ) : (
+              /* Original Job Details */
               <div className="space-y-6">
                 {/* Job Header */}
                 <Card>
