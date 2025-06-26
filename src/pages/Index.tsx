@@ -1,5 +1,6 @@
 
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Search, MapPin, DollarSign, Clock, Car, Bus, Building2, Users, Star } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -70,6 +71,7 @@ const Index = () => {
   const [searchTerm, setSearchTerm] = useState("Software Engineer");
   const [showPostJob, setShowPostJob] = useState(false);
   const [jobDescription, setJobDescription] = useState("");
+  const navigate = useNavigate();
 
   const handlePostJob = () => {
     if (jobDescription.trim()) {
@@ -264,7 +266,11 @@ const Index = () => {
                   <CardContent>
                     <div className="flex items-center justify-between">
                       <p className="text-gray-700">{selectedJob.contact}</p>
-                      <Button variant="outline" size="sm">
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => navigate('/chat')}
+                      >
                         Contact
                       </Button>
                     </div>
