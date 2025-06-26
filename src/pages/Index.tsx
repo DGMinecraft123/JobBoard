@@ -92,8 +92,6 @@ const Index = () => {
               <span className="text-white font-bold text-sm">JB</span>
             </div>
             <h1 className="text-xl font-semibold text-gray-900">JobBoard</h1>
-          </div>
-          <div className="flex items-center space-x-4">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
               <Input
@@ -103,8 +101,13 @@ const Index = () => {
                 className="pl-10 w-80"
               />
             </div>
+          </div>
+          <div className="flex items-center space-x-4">
             <Button onClick={() => setShowPostJob(!showPostJob)} className="bg-blue-600 hover:bg-blue-700">
               {showPostJob ? 'Back to Jobs' : 'Post a Job'}
+            </Button>
+            <Button onClick={() => navigate('/login')} variant="outline">
+              Login/Signup
             </Button>
           </div>
         </div>
