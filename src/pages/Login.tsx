@@ -1,10 +1,10 @@
-
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardDescription, CardTitle } from '@/components/ui/card';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Loader2 } from 'lucide-react';
+import { registerUser, loginUser, setToken, setCurrentUser } from '@/lib/auth';
 
 const Login = () => {
   const [isSignup, setIsSignup] = useState(false);
@@ -12,21 +12,74 @@ const Login = () => {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [fullName, setFullName] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
   const navigate = useNavigate();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (isSignup) {
-      if (password !== confirmPassword) {
-        alert('Passwords do not match');
-        return;
+    setError('');
+    setLoading(true);
+
+    try {
+      if (isSignup) {
+        if (password !== confirmPassword) {
+          setError('Passwords do not match');
+          setLoading(false);
+          return;
+        }
+
+        // Split full name into first and last name
+        const nameParts = fullName.trim().split(' ');
+        const first_name = nameParts[0] || '';
+        const last_name = nameParts.slice(1).join(' ') || '';
+
+        if (!first_name || !last_name) {
+          setError('Please enter your full name (first and last name)');
+          setLoading(false);
+          return;
+        }
+
+        // Register user
+        const response = await registerUser(first_name, last_name, email, password);
+        
+        // Store token and user data
+        setToken(response.data.token);
+        setCurrentUser(response.data.user);
+        
+        console.log('Registration successful:', response.data.user);
+      } else {
+        // Login user
+        const response = await loginUser(email, password);
+        
+        // Store token and user data
+        setToken(response.data.token);
+        setCurrentUser(response.data.user);
+        
+        console.log('Login successful:', response.data.user);
       }
-      console.log('Signup:', { fullName, email, password });
-    } else {
-      console.log('Login:', { email, password });
+
+      // Redirect to home page
+      navigate('/');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred');
+      console.error('Authentication error:', err);
+    } finally {
+      setLoading(false);
     }
-    // Redirect back to home after login/signup
-    navigate('/');
+  };
+
+  const clearForm = () => {
+    setEmail('');
+    setPassword('');
+    setConfirmPassword('');
+    setFullName('');
+    setError('');
+  };
+
+  const toggleMode = () => {
+    setIsSignup(!isSignup);
+    clearForm();
   };
 
   return (
@@ -58,6 +111,12 @@ const Login = () => {
             </CardDescription>
           </CardHeader>
           <CardContent>
+            {error && (
+              <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md">
+                <p className="text-red-600 text-sm">{error}</p>
+              </div>
+            )}
+
             <form onSubmit={handleSubmit} className="space-y-4">
               {isSignup && (
                 <div>
@@ -71,6 +130,7 @@ const Login = () => {
                     onChange={(e) => setFullName(e.target.value)}
                     placeholder="Enter your full name"
                     required
+                    disabled={loading}
                   />
                 </div>
               )}
@@ -86,6 +146,7 @@ const Login = () => {
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="Enter your email"
                   required
+                  disabled={loading}
                 />
               </div>
               
@@ -100,6 +161,7 @@ const Login = () => {
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Enter your password"
                   required
+                  disabled={loading}
                 />
               </div>
               
@@ -115,12 +177,24 @@ const Login = () => {
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     placeholder="Confirm your password"
                     required
+                    disabled={loading}
                   />
                 </div>
               )}
               
-              <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700">
-                {isSignup ? 'Create Account' : 'Sign In'}
+              <Button 
+                type="submit" 
+                className="w-full bg-blue-600 hover:bg-blue-700" 
+                disabled={loading}
+              >
+                {loading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    {isSignup ? 'Creating Account...' : 'Signing In...'}
+                  </>
+                ) : (
+                  isSignup ? 'Create Account' : 'Sign In'
+                )}
               </Button>
             </form>
             
@@ -129,8 +203,9 @@ const Login = () => {
                 {isSignup ? 'Already have an account?' : "Don't have an account?"}{' '}
                 <button
                   type="button"
-                  onClick={() => setIsSignup(!isSignup)}
+                  onClick={toggleMode}
                   className="text-blue-600 hover:text-blue-700 font-medium"
+                  disabled={loading}
                 >
                   {isSignup ? 'Sign in' : 'Sign up'}
                 </button>

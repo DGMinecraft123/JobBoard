@@ -1,86 +1,157 @@
-
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, MapPin, DollarSign, Clock, Car, Bus, Building2, Users, Star } from 'lucide-react';
+import { Search, MapPin, DollarSign, Clock, Car, Bus, Building2, Users, Star, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
+import { getCurrentUser, logoutUser } from '@/lib/auth';
 
-// Mock job data
-const mockJobs = [
-  {
-    id: 1,
-    title: "Cashier",
-    company: "Thien Huong Sandwiches",
-    location: "San Jose, California",
-    distance: "Within 15 miles",
-    salary: "$17/hour",
-    postedTime: "1 hour ago",
-    type: "Part-time",
-    description: "We are looking for a friendly and reliable cashier to join our team. Handle customer transactions, maintain clean workspace, and provide excellent customer service.",
-    qualifications: ["High school diploma", "Customer service experience preferred", "Basic math skills", "Bilingual (English/Vietnamese) a plus"],
-    contact: "Maria Nguyen - Store Manager",
-    images: ["/api/placeholder/300/200", "/api/placeholder/300/200"],
-    commute: {
-      car: { time: "12-15 minutes", cost: "$2.50 in fuel", insights: "Light traffic most hours" },
-      transit: { time: "25 minutes", route: "Bus #22 to downtown, 5-minute walk", insights: "Reliable schedule" }
-    }
-  },
-  {
-    id: 2,
-    title: "Software Engineer",
-    company: "Primera",
-    location: "San Francisco Bay Area",
-    distance: "Within 25 miles",
-    salary: "$120k - $160k/year",
-    postedTime: "4 hours ago",
-    type: "Full-time",
-    description: "Join our early-stage AI startup building foundational infrastructure for commercial real estate. Work with cutting-edge technology in document abstraction and portfolio analysis.",
-    qualifications: ["Bachelor's in Computer Science", "3+ years React/TypeScript experience", "Python knowledge", "AI/ML experience preferred"],
-    contact: "Sarah Chen - Engineering Manager",
-    images: ["/api/placeholder/300/200", "/api/placeholder/300/200"],
-    commute: {
-      car: { time: "35-50 minutes", cost: "$8.50 in fuel + parking", insights: "Heavy traffic during peak hours" },
-      transit: { time: "55 minutes", route: "Caltrain to SF, then Muni", insights: "Consistent timing, work-friendly" }
-    }
-  },
-  {
-    id: 3,
-    title: "Waiter/Waitress",
-    company: "The Garden Restaurant",
-    location: "Palo Alto, California",
-    distance: "Within 20 miles",
-    salary: "$16/hour + tips",
-    postedTime: "2 hours ago",
-    type: "Part-time",
-    description: "Night shift position available Monday-Wednesday, 5pm-10pm. Seeking experienced server for upscale dining establishment.",
-    qualifications: ["Restaurant experience required", "Excellent communication skills", "Flexible schedule", "Food safety certification preferred"],
-    contact: "David Kim - Restaurant Manager",
-    images: ["/api/placeholder/300/200", "/api/placeholder/300/200"],
-    commute: {
-      car: { time: "18-25 minutes", cost: "$3.20 in fuel", insights: "Moderate evening traffic" },
-      transit: { time: "40 minutes", route: "Bus #101 to University Ave", insights: "Limited evening service" }
-    }
-  }
-];
+// Job post interface matching database schema
+interface JobPost {
+  jobpost_id: number;
+  title: string;
+  location: string;
+  date: string;
+  description: string;
+  pictures_url: string;
+  qualifications: string;
+  salary: string;
+  first_name?: string;
+  last_name?: string;
+  profile_picture_url?: string;
+  user_id?: number;
+}
 
 const Index = () => {
-  const [selectedJob, setSelectedJob] = useState(mockJobs[0]);
-  const [searchTerm, setSearchTerm] = useState("Software Engineer");
+  const [jobPosts, setJobPosts] = useState<JobPost[]>([]);
+  const [selectedJob, setSelectedJob] = useState<JobPost | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
   const [showPostJob, setShowPostJob] = useState(false);
   const [jobDescription, setJobDescription] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [currentUser, setCurrentUser] = useState(getCurrentUser());
   const navigate = useNavigate();
 
-  const handlePostJob = () => {
+  // Fetch job posts from database
+  useEffect(() => {
+    const fetchJobPosts = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch('http://localhost:3001/api/jobposts');
+        const result = await response.json();
+        
+        if (result.success) {
+          setJobPosts(result.data);
+          if (result.data.length > 0) {
+            setSelectedJob(result.data[0]);
+          }
+        } else {
+          setError('Failed to fetch job posts');
+        }
+      } catch (err) {
+        setError('Error connecting to server');
+        console.error('Error fetching job posts:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchJobPosts();
+  }, []);
+
+  const handlePostJob = async () => {
     if (jobDescription.trim()) {
-      // Parse the job description and create a formatted job posting
-      console.log("Posting job:", jobDescription);
-      setJobDescription("");
-      setShowPostJob(false);
+      try {
+        // Use current user's ID if authenticated, otherwise use default
+        const userId = currentUser?.user_id || 1;
+        
+        const response = await fetch('http://localhost:3001/api/jobposts', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            title: 'New Job Posting',
+            location: 'Location TBD',
+            description: jobDescription,
+            pictures_url: '',
+            qualifications: 'To be determined',
+            salary: 'Salary TBD',
+            user_id: userId
+          }),
+        });
+
+        const result = await response.json();
+        if (result.success) {
+          // Refresh job posts
+          const refreshResponse = await fetch('http://localhost:3001/api/jobposts');
+          const refreshResult = await refreshResponse.json();
+          if (refreshResult.success) {
+            setJobPosts(refreshResult.data);
+            setSelectedJob(refreshResult.data[0]);
+          }
+          setJobDescription("");
+          setShowPostJob(false);
+        } else {
+          setError('Failed to post job');
+        }
+      } catch (err) {
+        setError('Error posting job');
+        console.error('Error posting job:', err);
+      }
     }
   };
+
+  const handleLogout = () => {
+    logoutUser();
+    setCurrentUser(null);
+    navigate('/');
+  };
+
+  // Filter job posts based on search term
+  const filteredJobPosts = jobPosts.filter(job =>
+    job.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    job.location.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    job.description.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  // Format date for display
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffInHours = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60));
+    
+    if (diffInHours < 1) return 'Just now';
+    if (diffInHours < 24) return `${diffInHours} hour${diffInHours > 1 ? 's' : ''} ago`;
+    
+    const diffInDays = Math.floor(diffInHours / 24);
+    return `${diffInDays} day${diffInDays > 1 ? 's' : ''} ago`;
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading job posts...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-red-600 mb-4">{error}</p>
+          <Button onClick={() => window.location.reload()}>Retry</Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -106,9 +177,21 @@ const Index = () => {
             <Button onClick={() => setShowPostJob(!showPostJob)} className="bg-blue-600 hover:bg-blue-700">
               {showPostJob ? 'Back to Jobs' : 'Post a Job'}
             </Button>
-            <Button onClick={() => navigate('/login')} variant="outline">
-              Login/Signup
-            </Button>
+            {currentUser ? (
+              <div className="flex items-center space-x-3">
+                <div className="text-sm text-gray-700">
+                  Welcome, {currentUser.first_name}!
+                </div>
+                <Button onClick={handleLogout} variant="outline" size="sm">
+                  <LogOut className="w-4 h-4 mr-1" />
+                  Logout
+                </Button>
+              </div>
+            ) : (
+              <Button onClick={() => navigate('/login')} variant="outline">
+                Login/Signup
+              </Button>
+            )}
           </div>
         </div>
       </div>
@@ -143,9 +226,9 @@ const Index = () => {
                 <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
                   <div className="flex items-center justify-between mb-4">
                     <h2 className="text-lg font-semibold text-gray-900">
-                      Software Engineer in United States
+                      Jobs in {jobPosts.length > 0 ? jobPosts[0].location : 'All Locations'}
                     </h2>
-                    <Badge variant="secondary">{mockJobs.length} results</Badge>
+                    <Badge variant="secondary">{filteredJobPosts.length} results</Badge>
                   </div>
                   
                   {/* Filters */}
@@ -159,33 +242,41 @@ const Index = () => {
 
                 {/* Job Listings */}
                 <div className="space-y-3">
-                  {mockJobs.map((job) => (
-                    <Card 
-                      key={job.id} 
-                      className={`cursor-pointer transition-all hover:shadow-md ${selectedJob.id === job.id ? 'ring-2 ring-blue-500 shadow-md' : ''}`}
-                      onClick={() => setSelectedJob(job)}
-                    >
-                      <CardContent className="p-4">
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1">
-                            <h3 className="font-semibold text-gray-900 mb-1">{job.title}</h3>
-                            <p className="text-sm text-blue-600 mb-1">{job.company}</p>
-                            <div className="flex items-center text-sm text-gray-600 mb-2">
-                              <MapPin className="w-3 h-3 mr-1" />
-                              <span>{job.location} - {job.distance}</span>
-                            </div>
-                            <div className="flex items-center text-sm text-green-700 font-medium">
-                              <DollarSign className="w-3 h-3 mr-1" />
-                              <span>{job.salary}</span>
-                            </div>
-                          </div>
-                          <Badge variant="secondary" className="text-xs">
-                            {job.type}
-                          </Badge>
-                        </div>
+                  {filteredJobPosts.length === 0 ? (
+                    <Card>
+                      <CardContent className="p-8 text-center">
+                        <p className="text-gray-500">No job posts found. Try adjusting your search terms.</p>
                       </CardContent>
                     </Card>
-                  ))}
+                  ) : (
+                    filteredJobPosts.map((job) => (
+                      <Card 
+                        key={job.jobpost_id} 
+                        className={`cursor-pointer transition-all hover:shadow-md ${selectedJob?.jobpost_id === job.jobpost_id ? 'ring-2 ring-blue-500 shadow-md' : ''}`}
+                        onClick={() => setSelectedJob(job)}
+                      >
+                        <CardContent className="p-4">
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                              <h3 className="font-semibold text-gray-900 mb-1">{job.title}</h3>
+                              <p className="text-sm text-blue-600 mb-1">{job.location}</p>
+                              <div className="flex items-center text-sm text-gray-600 mb-2">
+                                <MapPin className="w-3 h-3 mr-1" />
+                                <span>{job.location} - {formatDate(job.date)}</span>
+                              </div>
+                              <div className="flex items-center text-sm text-green-700 font-medium">
+                                <DollarSign className="w-3 h-3 mr-1" />
+                                <span>{job.salary}</span>
+                              </div>
+                            </div>
+                            <Badge variant="secondary" className="text-xs">
+                              Posted {formatDate(job.date)}
+                            </Badge>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))
+                  )}
                 </div>
               </>
             )}
@@ -224,161 +315,154 @@ const Index = () => {
             ) : (
               /* Original Job Details */
               <div className="space-y-6">
-                {/* Job Header */}
-                <Card>
-                  <CardContent className="p-6">
-                    <div className="flex items-start justify-between mb-4">
-                      <div>
-                        <h1 className="text-2xl font-bold text-gray-900 mb-2">{selectedJob.title}</h1>
-                        <p className="text-lg text-blue-600 mb-2">{selectedJob.company}</p>
-                        <div className="flex items-center text-gray-600 mb-2">
-                          <MapPin className="w-4 h-4 mr-2" />
-                          <span>{selectedJob.location} - {selectedJob.postedTime}</span>
-                        </div>
-                        <div className="flex items-center text-lg font-semibold text-green-700">
-                          <DollarSign className="w-5 h-5 mr-1" />
-                          <span>{selectedJob.salary}</span>
-                        </div>
-                      </div>
-                      <div className="flex flex-col space-y-2">
-                        <Badge className="bg-green-100 text-green-800 border-green-200">
-                          {selectedJob.type}
-                        </Badge>
-                      </div>
-                    </div>
-                    
-                    <div className="flex space-x-3">
-                      <Button className="bg-blue-600 hover:bg-blue-700">
-                        Apply Now
-                      </Button>
-                      <Button variant="outline">
-                        Save Job
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* Contact Information */}
-                <Card>
-                  <CardHeader>
-                    <h3 className="text-lg font-semibold flex items-center">
-                      <Users className="w-5 h-5 mr-2" />
-                      Who should I contact
-                    </h3>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="flex items-center justify-between">
-                      <p className="text-gray-700">{selectedJob.contact}</p>
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        onClick={() => navigate('/chat')}
-                      >
-                        Contact
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* About the Job */}
-                <Card>
-                  <CardHeader>
-                    <h3 className="text-lg font-semibold">About the job</h3>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div>
-                      <h4 className="font-medium text-gray-900 mb-2">Description</h4>
-                      <p className="text-gray-700 leading-relaxed">{selectedJob.description}</p>
-                    </div>
-                    
-                    <Separator />
-                    
-                    <div>
-                      <h4 className="font-medium text-gray-900 mb-3">Qualifications</h4>
-                      <ul className="space-y-2">
-                        {selectedJob.qualifications.map((qual, index) => (
-                          <li key={index} className="flex items-start">
-                            <div className="w-2 h-2 bg-blue-600 rounded-full mt-2 mr-3 flex-shrink-0"></div>
-                            <span className="text-gray-700">{qual}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* Commute Analysis */}
-                <Card>
-                  <CardHeader>
-                    <h3 className="text-lg font-semibold">Commute Analysis</h3>
-                    <p className="text-sm text-gray-600">Transportation options to {selectedJob.location}</p>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {/* By Car */}
-                      <div className="border border-gray-200 rounded-lg p-4">
-                        <div className="flex items-center mb-3">
-                          <Car className="w-5 h-5 mr-2 text-blue-600" />
-                          <h4 className="font-medium">By Car</h4>
-                        </div>
-                        <div className="space-y-2 text-sm">
-                          <div className="flex items-center">
-                            <Clock className="w-4 h-4 mr-2 text-gray-400" />
-                            <span><strong>Time:</strong> {selectedJob.commute.car.time}</span>
+                {selectedJob ? (
+                  <>
+                    {/* Job Header */}
+                    <Card>
+                      <CardContent className="p-6">
+                        <div className="flex items-start justify-between mb-4">
+                          <div>
+                            <h1 className="text-2xl font-bold text-gray-900 mb-2">{selectedJob.title}</h1>
+                            <p className="text-lg text-blue-600 mb-2">{selectedJob.location}</p>
+                            <div className="flex items-center text-gray-600 mb-2">
+                              <MapPin className="w-4 h-4 mr-2" />
+                              <span>{selectedJob.location} - {formatDate(selectedJob.date)}</span>
+                            </div>
+                            <div className="flex items-center text-lg font-semibold text-green-700">
+                              <DollarSign className="w-5 h-5 mr-1" />
+                              <span>{selectedJob.salary}</span>
+                            </div>
                           </div>
-                          <div className="flex items-center">
-                            <DollarSign className="w-4 h-4 mr-2 text-gray-400" />
-                            <span><strong>Cost:</strong> {selectedJob.commute.car.cost}</span>
+                          <div className="flex flex-col space-y-2">
+                            <Badge className="bg-green-100 text-green-800 border-green-200">
+                              Active
+                            </Badge>
                           </div>
-                          <p className="text-gray-600 mt-2">
-                            <strong>Insights:</strong> {selectedJob.commute.car.insights}
+                        </div>
+                        
+                        <div className="flex space-x-3">
+                          <Button className="bg-blue-600 hover:bg-blue-700">
+                            Apply Now
+                          </Button>
+                          <Button variant="outline">
+                            Save Job
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    {/* Contact Information */}
+                    <Card>
+                      <CardHeader>
+                        <h3 className="text-lg font-semibold flex items-center">
+                          <Users className="w-5 h-5 mr-2" />
+                          Who to contact
+                        </h3>
+                      </CardHeader>
+                      <CardContent>
+                        {selectedJob.first_name && selectedJob.last_name ? (
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center space-x-3">
+                              {selectedJob.profile_picture_url ? (
+                                <img 
+                                  src={selectedJob.profile_picture_url} 
+                                  alt={`${selectedJob.first_name} ${selectedJob.last_name}`}
+                                  className="w-10 h-10 rounded-full object-cover"
+                                />
+                              ) : (
+                                <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center">
+                                  <span className="text-white font-semibold text-sm">
+                                    {selectedJob.first_name[0]}{selectedJob.last_name[0]}
+                                  </span>
+                                </div>
+                              )}
+                              <div>
+                                <p className="font-medium text-gray-900">
+                                  {selectedJob.first_name} {selectedJob.last_name}
+                                </p>
+                                <p className="text-sm text-gray-600">Job Poster</p>
+                              </div>
+                            </div>
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => navigate('/chat')}
+                            >
+                              Contact
+                            </Button>
+                          </div>
+                        ) : (
+                          <div className="flex items-center justify-between">
+                            <p className="text-gray-500">Contact information not available</p>
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              disabled
+                            >
+                              Contact
+                            </Button>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+
+                    {/* About the Job */}
+                    <Card>
+                      <CardHeader>
+                        <h3 className="text-lg font-semibold">About the job</h3>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        <div>
+                          <h4 className="font-medium text-gray-900 mb-2">Description</h4>
+                          <p className="text-gray-700 leading-relaxed">{selectedJob.description}</p>
+                        </div>
+                        
+                        <Separator />
+                        
+                        <div>
+                          <h4 className="font-medium text-gray-900 mb-3">Qualifications</h4>
+                          <ul className="space-y-2">
+                            {selectedJob.qualifications.split(',').map((qual, index) => (
+                              <li key={index} className="flex items-start">
+                                <div className="w-2 h-2 bg-blue-600 rounded-full mt-2 mr-3 flex-shrink-0"></div>
+                                <span className="text-gray-700">{qual.trim()}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    {/* Company Images */}
+                    {selectedJob.pictures_url && (
+                      <Card>
+                        <CardHeader>
+                          <h3 className="text-lg font-semibold">Job Images</h3>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {selectedJob.pictures_url.split(',').map((image, index) => (
+                              <div key={index} className="aspect-video bg-gray-200 rounded-lg overflow-hidden">
+                                <div className="w-full h-full flex items-center justify-center text-gray-500">
+                                  <Building2 className="w-12 h-12" />
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                          <p className="text-sm text-gray-600 mt-3">
+                            Workplace photos showing team environment and daily operations
                           </p>
-                        </div>
-                      </div>
-
-                      {/* By Transit */}
-                      <div className="border border-gray-200 rounded-lg p-4">
-                        <div className="flex items-center mb-3">
-                          <Bus className="w-5 h-5 mr-2 text-green-600" />
-                          <h4 className="font-medium">By Public Transit</h4>
-                        </div>
-                        <div className="space-y-2 text-sm">
-                          <div className="flex items-center">
-                            <Clock className="w-4 h-4 mr-2 text-gray-400" />
-                            <span><strong>Time:</strong> {selectedJob.commute.transit.time}</span>
-                          </div>
-                          <p className="text-gray-600">
-                            <strong>Route:</strong> {selectedJob.commute.transit.route}
-                          </p>
-                          <p className="text-gray-600 mt-2">
-                            <strong>Insights:</strong> {selectedJob.commute.transit.insights}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* Company Images */}
-                <Card>
-                  <CardHeader>
-                    <h3 className="text-lg font-semibold">About {selectedJob.company}</h3>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {selectedJob.images.map((image, index) => (
-                        <div key={index} className="aspect-video bg-gray-200 rounded-lg overflow-hidden">
-                          <div className="w-full h-full flex items-center justify-center text-gray-500">
-                            <Building2 className="w-12 h-12" />
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                    <p className="text-sm text-gray-600 mt-3">
-                      Workplace photos showing team environment and daily operations
-                    </p>
-                  </CardContent>
-                </Card>
+                        </CardContent>
+                      </Card>
+                    )}
+                  </>
+                ) : (
+                  <Card>
+                    <CardContent className="p-8 text-center">
+                      <p className="text-gray-500">Select a job to view details</p>
+                    </CardContent>
+                  </Card>
+                )}
               </div>
             )}
           </div>
