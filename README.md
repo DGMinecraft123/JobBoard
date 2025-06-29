@@ -4,6 +4,26 @@
 
 **URL**: https://lovable.dev/projects/5f259943-b666-4dcb-8732-629f3ef07e2c
 
+## Setup Instructions
+
+### Google Routes API Setup (Required for Commute Analysis)
+
+The job board includes a commute analysis feature that requires a Google Routes API key:
+
+1. **Get a Google Cloud API Key:**
+   - Go to [Google Cloud Console](https://console.cloud.google.com/)
+   - Create a new project or select an existing one
+   - Enable the "Routes API" from the API Library
+   - Go to "Credentials" and create an API key
+
+2. **Set up Environment Variables:**
+   - Create a `.env` file in the project root
+   - Add your API key: `VITE_GOOGLE_ROUTES_API_KEY=your_api_key_here`
+
+3. **Security Note:**
+   - The API key is exposed to the client-side, so set up proper restrictions in Google Cloud Console
+   - Restrict the API key to only the Routes API and your domain
+
 ## How can I edit this code?
 
 There are several ways of editing your application.

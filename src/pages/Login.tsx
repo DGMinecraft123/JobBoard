@@ -43,27 +43,33 @@ const Login = () => {
         // Register user
         const response = await registerUser(first_name, last_name, email, password);
         
-        // Store token and user data
-        setToken(response.data.token);
-        setCurrentUser(response.data.user);
-        
-        console.log('Registration successful:', response.data.user);
+        if (response.success) {
+          // Store user data and token
+          localStorage.setItem('user', JSON.stringify(response.data.user));
+          localStorage.setItem('token', response.data.token);
+          setCurrentUser(response.data.user);
+          setError('');
+          navigate('/');
+        } else {
+          setError(response.message || 'Registration failed');
+        }
       } else {
         // Login user
         const response = await loginUser(email, password);
         
-        // Store token and user data
-        setToken(response.data.token);
-        setCurrentUser(response.data.user);
-        
-        console.log('Login successful:', response.data.user);
+        if (response.success) {
+          // Store user data and token
+          localStorage.setItem('user', JSON.stringify(response.data.user));
+          localStorage.setItem('token', response.data.token);
+          setCurrentUser(response.data.user);
+          setError('');
+          navigate('/');
+        } else {
+          setError(response.message || 'Login failed');
+        }
       }
-
-      // Redirect to home page
-      navigate('/');
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
-      console.error('Authentication error:', err);
+    } catch (error: any) {
+      setError(error.response?.data?.message || 'An error occurred');
     } finally {
       setLoading(false);
     }

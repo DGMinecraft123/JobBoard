@@ -9,8 +9,16 @@ const dbConfig = {
   database: process.env.DB_NAME || 'linkedout',
   port: parseInt(process.env.DB_PORT || '3306'),
   waitForConnections: true,
-  connectionLimit: 10,
+  connectionLimit: 20,
   queueLimit: 0,
+  acquireTimeout: 60000,
+  timeout: 60000,
+  reconnect: true,
+  charset: 'utf8mb4',
+  multipleStatements: false,
+  dateStrings: true,
+  enableKeepAlive: true,
+  keepAliveInitialDelay: 0,
 };
 
 // Create connection pool
