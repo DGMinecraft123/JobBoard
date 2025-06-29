@@ -64,14 +64,14 @@ The application addresses the modern challenges of job hunting and recruitment b
 
 ### **External APIs & Services**
 - **Google Routes API** - Commute time and distance calculations
-- **IBM WatsonX AI** - Natural language processing and translation
+- **IBM Granite** - Natural language processing and translation
 - **Flag CDN** - Country flags for language selection
 
 ## AI Usage and Purpose
 
-### **IBM WatsonX AI Integration**
+### **IBM Granite Integration**
 
-The platform leverages IBM's WatsonX AI services for two primary purposes:
+The platform leverages IBM's Granite services for two primary purposes:
 
 #### 1. **Job Description Segmentation**
 - **Model**: IBM Granite-3-2B-Instruct (3.2B parameter natural language model)
@@ -134,7 +134,7 @@ JobBoard represents a modern approach to job marketplace platforms by integratin
 5. **Scalable Architecture**: Modern tech stack ensures performance and maintainability
 
 ### **Technical Innovation**
-- **AI Integration**: Seamless integration of IBM WatsonX AI for natural language processing
+- **AI Integration**: Seamless integration of IBM Granite for natural language processing
 - **Real-Time Features**: WebSocket-based communication with typing indicators and message history
 - **Performance Optimization**: Caching, rate limiting, and parallel processing for optimal user experience
 - **Modern UI/UX**: Responsive design with accessible components and intuitive navigation
